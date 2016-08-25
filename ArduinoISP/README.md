@@ -6,7 +6,11 @@ It can also be used to burn a bootloader on __generic/clone__ Arduinos without b
 
 ## Wiring:
 
-![ArduinoISP](ArduinoISP_bb.png)
+NANO to NANO
+![ArduinoISP](ArduinoISP_NANO_bb.png)
+
+NANO to UNO R3 (can be through ICSP too)
+![ArduinoISP](ArduinoISP_UNOR3_bb.png)
 
 ## Instructions
 
