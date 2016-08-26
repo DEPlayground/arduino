@@ -31,6 +31,9 @@
 
 LedControl mx=LedControl(mxDin,mxClock,mxCS,1);
 
+byte nothing = 0x0f;
+byte none = 0xf0;
+
 void setup() {
     Wire.begin();
     Serial.begin(9600);
@@ -90,6 +93,21 @@ void displayTime() {
 }
 
 void loop() {
-  displayTime();
-  delay(1000);
+    displayTime();
+    
+    switch(nothing) {
+        case 0xf0:
+            mx.setColumn(0,0, nothing);
+            mx.setColumn(0,1, none);
+            nothing = 0x0f;
+            none = 0xf0;
+            break;
+        case 0x0f:
+            mx.setColumn(0,0, nothing);
+            mx.setColumn(0,1, none);
+            nothing = 0xf0;
+            none = 0x0f;
+            break;
+    }
+    delay(1000);
 }
