@@ -20,14 +20,37 @@
 */
 
 #include <Arduino.h>
-#include <Wire.h>           // To RTS I2C communication
-#include <LedControl.h>     // MAX7219 controller
+#include <Wire.h>            // To RTS/DS3231 I2C communication
+#include <LedControl.h>      // MAX7219 controller
 
-#define RTC 0x68            // DS3231 I2C adress
+#define DS_ADDRESS      0x68 // DS3231 I2C address
 
-#define mxClock 12          // 
-#define mxCS 11             // MAX7219 pinout
-#define mxDin 10            //
+#define SEC_REG         0x00 // DS3231 registers position
+#define MIN_REG         0x01
+#define HOUR_REG        0x02
+#define WDAY_REG        0x03
+#define MDAY_REG        0x04
+#define MONTH_REG       0x05
+#define YEAR_REG        0x06
+
+#define AL1SEC_REG      0x07
+#define AL1MIN_REG      0x08
+#define AL1HOUR_REG     0x09
+#define AL1WDAY_REG     0x0A
+
+#define AL2MIN_REG      0x0B
+#define AL2HOUR_REG     0x0C
+#define AL2WDAY_REG     0x0D
+
+#define CONTROL_REG     0x0E
+#define STATUS_REG      0x0F
+#define AGING_OFFSET_REG 0x0F
+#define TMP_UP_REG      0x11
+#define TMP_LOW_REG     0x12
+
+#define mxClock 12           // 
+#define mxCS 11              // MAX7219 pinout
+#define mxDin 10             //
 
 byte nothing = B00110011;
 byte none = B11001100;
@@ -44,24 +67,20 @@ void setup() {
 byte dtob(byte val) { return ((val / 10 * 16) + (val % 10)); }
 byte btod(byte val) { return ((val / 16 * 10) + (val % 16)); }
 
-void set(byte hour, byte minute, byte second) {
-    Wire.beginTransmission(RTC);
-    Wire.write(0);
-    Wire.write(dtob(second));
-    Wire.write(dtob(minute));
-    Wire.write(dtob(hour));
+void DSset(byte reg, byte data) {
+    Wire.beginTransmission(DS_ADDRESS);
+    Wire.write(reg);                        // Move to registrer
+    Wire.write(dtob(data));                 // Write data
     Wire.endTransmission();
 }
 
-void read(byte *hour, byte *minute, byte *second) {
-    Wire.beginTransmission(RTC);
-    Wire.write(0);
+byte DSread(byte reg) {
+    Wire.beginTransmission(DS_ADDRESS);
+    Wire.write(reg);                        // Move to register
     Wire.endTransmission();
 
-    Wire.requestFrom(RTC, 3);
-    *second = Wire.read() & 0x7f;
-    *minute = Wire.read();
-    *hour = Wire.read() & 0x3f;
+    Wire.requestFrom(DS_ADDRESS, 1);        // Request 1 byte
+    return Wire.read();                     // Return with response
 }
 
 void mxConfig(void) {
@@ -110,14 +129,23 @@ void writeNumber(byte pos, byte number) {
 }
 
 void displayTime(void) {
-    byte hour, minute, second;
-    read(&hour, &minute, &second);
+    byte hour, minute, second, wday, day, month, year;
 
-    writeNumber(1, btod((hour >> 4) & ((1 << 4) - 1)));
-    writeNumber(2, btod((hour & 0x0f)));
+    hour = DSread(HOUR_REG);
+    minute = DSread(MIN_REG);
+    second = DSread(SEC_REG);
+    wday = DSread(WDAY_REG);
+    day = DSread(MDAY_REG);
+    month = DSread(MONTH_REG);
+    year = DSread(YEAR_REG);
+    
+    writeNumber(1, btod((hour >> 4) & ((1 << 4) - 1)));   // Get first digit
+    writeNumber(2, btod((hour & 0x0f)));                  // Get second digit
     writeNumber(3, btod((minute >> 4) & ((1 << 4) - 1)));
     writeNumber(4, btod((minute & 0x0f)));
 
+    Serial.print("+=-=-=-=-=-=-=-=-=-=-=-=+\n|");
+    
     if(btod(hour)<10)Serial.print("0");
     Serial.print(btod(hour));
     Serial.print(":");
@@ -125,11 +153,69 @@ void displayTime(void) {
     Serial.print(btod(minute));
     Serial.print(":");
     if(btod(second)<10)Serial.print("0");
-    Serial.println(btod(second));
+    Serial.print(btod(second));
+
+    Serial.print("\t\t|\n|");
+
+    Serial.print(btod(day));
+    Serial.print("/");
+    Serial.print(btod(month));
+    Serial.print("/");
+    Serial.print(btod(year));
+
+    Serial.print("\t\t|\n|");
+    
+    switch (wday) {
+    case 1:
+      Serial.print("Sunday");
+      break;
+    case 2:
+      Serial.print("Monday");
+      break;
+    case 3:
+      Serial.print("Tuesday");
+      break;
+    case 4:
+      Serial.print("Wednesday");
+      break;
+    case 5:
+      Serial.print("Thursday");
+      break;
+    case 6:
+      Serial.print("Friday");
+      break;
+    case 7:
+      Serial.print("Saturday");
+      break;
+    }
+    Serial.print("\t\t|\n|");
+}
+
+void displayTemp(void) {
+    float temp;
+    byte tUbyte = DSread(TMP_UP_REG);    //Two's complement form
+    byte tLbyte = DSread(TMP_LOW_REG);   //Fractional part
+  
+    if(tUbyte & 0b10000000) {                   //check if -ve number
+       tUbyte ^= 0b11111111;  
+       tUbyte += 0x1;
+       temp = tUbyte + ((tLbyte >> 6) * 0.25);
+       temp = temp * -1;
+    } else {
+        temp = tUbyte + ((tLbyte >> 6) * 0.25); 
+    }
+
+    Serial.print("Temperature is: ");
+    Serial.print(temp, BIN);
+    Serial.print(char(176));                    // EASCII char 176 (°)
+    Serial.print("C");
+
+    Serial.println("|\n+=-=-=-=-=-=-=-=-=-=-=-=+");
 }
 
 void loop() {
     displayTime();
+    displayTemp();
     
     switch(nothing) {
         case B00110011:
