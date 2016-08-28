@@ -45,26 +45,30 @@
 
 #define CONTROL_REG     0x0E // EOSC BBSQW CONV RS2  RS1     INTCN A2IE A1IE
 #define STATUS_REG      0x0F // OSF  0     0    0    EN32kHz BSY   A2F  A1F
-#define AGING_OFFSET_REG 0x10 //SIGN DATA  DATA DATA DATA    DATA  DATA DATA
+#define AGE_OFFSET_REG  0x10 // SIGN DATA  DATA DATA DATA    DATA  DATA DATA
 #define TMP_UP_REG      0x11 // SIGN DATA  DATA DATA DATA    DATA  DATA DATA (temperature integer)
 #define TMP_LOW_REG     0x12 // DATA DATA  0    0    0       0     0    0    (temperature float)
 
-#define mxClock 12           // 
-#define mxCS 11              // MAX7219 pinout
-#define mxDin 10             //
+#define MX_CLOCK        12   // 
+#define MX_CS           11   // MAX7219 pinout
+#define MX_DIN          10   //
 
-byte algarism[10][3] = {B00011111, B00010001, B00011111, // 0
-                        B00000000, B00011111, B00000000, // 1
-                        B00011101, B00010101, B00010111, // 2
-                        B00010001, B00010101, B00011011, // 3
-                        B00000111, B00000100, B00011111, // 4
-                        B00010111, B00010101, B00011101, // 5
-                        B00011111, B00010100, B00011100, // 6
-                        B00000001, B00000001, B00011111, // 7
-                        B00011111, B00010101, B00011111, // 8
-                        B00000111, B00000101, B00011111};// 9
+uint32_t delay_;             // Parallel delay storage
 
-LedControl mx=LedControl(mxDin,mxClock,mxCS,2);
+byte algarism[12][3] = {B00011111, B00010001, B00011111,  // 0
+                        B00000000, B00011111, B00000000,  // 1
+                        B00011101, B00010101, B00010111,  // 2
+                        B00010001, B00010101, B00011011,  // 3
+                        B00000111, B00000100, B00011111,  // 4
+                        B00010111, B00010101, B00011101,  // 5
+                        B00011111, B00010100, B00011100,  // 6
+                        B00000001, B00000001, B00011111,  // 7
+                        B00011111, B00010101, B00011111,  // 8
+                        B00000111, B00000101, B00011111,  // 9
+                        B00000010, B00000101, B00000010,  // º
+                        B00001110, B00010001, B00010001}; // C
+
+LedControl mx=LedControl(MX_DIN, MX_CLOCK, MX_CS, 2);
 
 void setup() {
     Wire.begin();
@@ -79,9 +83,9 @@ void setup() {
 void mxConfig(void) {
   int devices=mx.getDeviceCount();
   for(int matrix=0;matrix<devices;matrix++) {
-    mx.shutdown(matrix,false);  // Wake up
-    mx.setIntensity(matrix,2);  // set luminosity and
-    mx.clearDisplay(matrix);    // clear.
+    mx.shutdown(matrix,false);          // Wake up
+    mx.setIntensity(matrix,2);          // set luminosity and
+    mx.clearDisplay(matrix);            // clear.
   }
 }
 
@@ -91,18 +95,18 @@ byte btod(byte data) { return ((data / 16 * 10) + (data % 16)); }
 
 void DSset(byte reg, byte data) {
     Wire.beginTransmission(DS_ADDRESS);
-    Wire.write(reg);            // Move to registrer
-    Wire.write(dtob(data));     // Write data
+    Wire.write(reg);                    // Move to registrer
+    Wire.write(dtob(data));             // Write data
     Wire.endTransmission();
 }
 
 byte DSread(byte reg) {
     Wire.beginTransmission(DS_ADDRESS);
-    Wire.write(reg);                        // Move to register
+    Wire.write(reg);                    // Move to register
     Wire.endTransmission();
 
-    Wire.requestFrom(DS_ADDRESS, 1);        // Request 1 byte
-    return Wire.read();                     // Return with response
+    Wire.requestFrom(DS_ADDRESS, 1);    // Request 1 byte
+    return Wire.read();                 // Return with response
 }
 
 void DSsetDate(byte hour, byte minute, byte wday,
@@ -140,67 +144,29 @@ void writeNumber(byte pos, byte number) {
     }
 }
 
-void displayTime(void) {
-    byte hour, minute, second, wday, day, month, year;
+void displayHour(void) {
+    byte hour, minute, second;
 
     hour = DSread(HOUR_REG);
     minute = DSread(MIN_REG);
     second = DSread(SEC_REG);
-    wday = DSread(WDAY_REG);
-    day = DSread(MDAY_REG);
-    month = DSread(MONTH_REG);
-    year = DSread(YEAR_REG);
     
     writeNumber(1, btod((hour >> 4) & ((1 << 4) - 1)));   // Get first digit
     writeNumber(2, btod((hour & 0x0f)));                  // Get second digit
     writeNumber(3, btod((minute >> 4) & ((1 << 4) - 1)));
     writeNumber(4, btod((minute & 0x0f)));
+}
 
-    Serial.print("+=-=-=-=-=-=-=-=-=-=-=-=+\n|");
-    
-    if(btod(hour)<10)Serial.print("0");
-    Serial.print(btod(hour));
-    Serial.print(":");
-    if(btod(minute)<10)Serial.print("0");
-    Serial.print(btod(minute));
-    Serial.print(":");
-    if(btod(second)<10)Serial.print("0");
-    Serial.print(btod(second));
+void displayDate(void) {
+    byte mday, month;
 
-    Serial.print("\t\t|\n|");
+    mday = DSread(MDAY_REG);
+    month = DSread(MONTH_REG);
 
-    Serial.print(btod(day));
-    Serial.print("/");
-    Serial.print(btod(month));
-    Serial.print("/");
-    Serial.print(btod(year));
-
-    Serial.print("\t\t|\n|");
-    
-    switch (wday) {
-    case 1:
-      Serial.print("Sunday\t");
-      break;
-    case 2:
-      Serial.print("Monday\t");
-      break;
-    case 3:
-      Serial.print("Tuesday");
-      break;
-    case 4:
-      Serial.print("Wednesday");
-      break;
-    case 5:
-      Serial.print("Thursday");
-      break;
-    case 6:
-      Serial.print("Friday\t");
-      break;
-    case 7:
-      Serial.print("Saturday");
-      break;
-    }
-    Serial.print("\t\t|\n|");
+    writeNumber(1, btod((mday >> 4) & ((1 << 4) - 1)));
+    writeNumber(2, btod((mday & 0x0f)));
+    writeNumber(3, btod((month >> 4) & ((1 << 4) - 1)));
+    writeNumber(4, btod((month & 0x0f)));
 }
 
 void displayTemp(void) {
@@ -215,23 +181,38 @@ void displayTemp(void) {
         temp = tbyte;
     }
 
-    Serial.print("Temperature is: ");
-    Serial.print(btod(temp));
-    Serial.print(char(176));            // EASCII char 176 (°)
-    Serial.print("C\t");
-
-    Serial.println("|\n+=-=-=-=-=-=-=-=-=-=-=-=+");
+    writeNumber(1, (temp / 10 % 10));
+    writeNumber(2, (temp % 10));
+    writeNumber(3, 10);
+    writeNumber(4, 11);
 }
 
 void loop() {
-    displayTime();
-    displayTemp();
+    delay_++;
 
-    byte working = random(0x00, 0xff);
-    mx.setColumn(0,0, working);
-    mx.setColumn(0,1, ~working);
-    mx.setColumn(1,0, ~working);
-    mx.setColumn(1,1, working);
-    
+    if(delay_ <= 10) {
+        displayHour();
+        byte working = random(0x00, 0xff);
+        mx.setColumn(0,0, working);
+        mx.setColumn(0,1, ~working);
+        mx.setColumn(1,0, ~working);
+        mx.setColumn(1,1, working);
+    }
+    else if((delay_ > 10) && (delay_ <= 14)) {
+        displayDate();
+        mx.setColumn(0,0, 0xaa);
+        mx.setColumn(0,1, 0xaa);
+        mx.setColumn(1,0, 0x55);
+        mx.setColumn(1,1, 0x55);
+    }
+    else if((delay_ > 14) && (delay_ <= 18)) {
+        displayTemp();
+        mx.setColumn(0,0, 0xcc);
+        mx.setColumn(0,1, 0xcc);
+        mx.setColumn(1,0, 0x33);
+        mx.setColumn(1,1, 0x33);
+    }
+    else delay_ = 0;                    // Reset counter
+
     delay(1000);
 }
