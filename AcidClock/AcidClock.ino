@@ -54,6 +54,8 @@
 #define MX_DIN          10   //
 
 uint32_t delay_;             // Parallel delay storage
+byte lowerd = 128;
+byte lowert = 1;
 
 byte algarism[12][3] = {B00011111, B00010001, B00011111,  // 0
                         B00000000, B00011111, B00000000,  // 1
@@ -190,7 +192,7 @@ void displayTemp(void) {
 void loop() {
     delay_++;
 
-    if(delay_ <= 10) {
+    if(delay_ <= 12) {
         displayHour();
         byte working = random(0x00, 0xff);
         mx.setColumn(0,0, working);
@@ -198,19 +200,23 @@ void loop() {
         mx.setColumn(1,0, ~working);
         mx.setColumn(1,1, working);
     }
-    else if((delay_ > 10) && (delay_ <= 14)) {
+    else if((delay_ > 12) && (delay_ <= 20)) {
         displayDate();
-        mx.setColumn(0,0, 0xaa);
-        mx.setColumn(0,1, 0xaa);
-        mx.setColumn(1,0, 0x55);
-        mx.setColumn(1,1, 0x55);
+        mx.setColumn(0,0, lowerd);
+        mx.setColumn(0,1, lowerd);
+        mx.setColumn(1,0, ~lowerd);
+        mx.setColumn(1,1, ~lowerd);
+        lowerd = ((lowerd >> 1) + 0x80);
+        lowert = 1;
     }
-    else if((delay_ > 14) && (delay_ <= 18)) {
+    else if((delay_ > 20) && (delay_ <= 28)) {
         displayTemp();
-        mx.setColumn(0,0, 0xcc);
-        mx.setColumn(0,1, 0xcc);
-        mx.setColumn(1,0, 0x33);
-        mx.setColumn(1,1, 0x33);
+        mx.setColumn(0,0, ~lowert);
+        mx.setColumn(0,1, ~lowert);
+        mx.setColumn(1,0, lowert);
+        mx.setColumn(1,1, lowert);
+        lowert = ((lowert << 1) + 1);
+        lowerd = 0x80;
     }
     else delay_ = 0;                    // Reset counter
 
