@@ -1,5 +1,5 @@
 /*
-  Clockduino - A simple Arduino-based clock with MAX7219 e DS3231
+  AcidClock - A simple Arduino-based clock with MAX7219 e DS3231
   Copyright (C) 2016 - Acidhub <contact@acidhub.click>
 
     This program is free software: you can redistribute it and/or modify
