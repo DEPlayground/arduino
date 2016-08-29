@@ -59,7 +59,7 @@ byte lowert = 1;
 
 // 3x5 fonts
 // Old "square" font (best in square matriz)
-//byte algarism[12][3] = {B00011111, B00010001, B00011111,  // 0
+//byte algarism[13][3] = {B00011111, B00010001, B00011111,  // 0
 //                        B00000000, B00011111, B00000000,  // 1
 //                        B00011101, B00010101, B00010111,  // 2
 //                        B00010001, B00010101, B00011111,  // 3
@@ -69,11 +69,12 @@ byte lowert = 1;
 //                        B00000001, B00000001, B00011111,  // 7
 //                        B00011111, B00010101, B00011111,  // 8
 //                        B00010111, B00010101, B00011111,  // 9
-//                        B00000010, B00000101, B00000010,  // º
+//                        B00000111, B00000101, B00000111,  // °
+//                        B00010111, B00010101, B00010111,  // ° (w/ -ve)
 //                        B00011111, B00010001, B00010001}; // C
 
 // New "curve" font (best in dot matrix)
-byte algarism[12][3] = {B00001110, B00010001, B00001110,  // 0
+byte algarism[13][3] = {B00001110, B00010001, B00001110,  // 0
                         B00000000, B00011111, B00000000,  // 1
                         B00011001, B00010101, B00010010,  // 2
                         B00010001, B00010101, B00001010,  // 3
@@ -83,7 +84,8 @@ byte algarism[12][3] = {B00001110, B00010001, B00001110,  // 0
                         B00000001, B00000001, B00011110,  // 7
                         B00011011, B00010101, B00011011,  // 8
                         B00000011, B00000101, B00011110,  // 9
-                        B00000010, B00000101, B00000010,  // º
+                        B00000010, B00000101, B00000010,  // °
+                        B00010010, B00010101, B00010010,  // ° (w/ -ve)
                         B00001110, B00010001, B00010001}; // C
 
 LedControl mx=LedControl(MX_DIN, MX_CLOCK, MX_CS, 2);
@@ -119,12 +121,12 @@ byte DSread(byte reg) {
 
 void DSsetDate(byte hour, byte minute, byte wday,
                byte day, byte month, byte year) {
-    DSset(HOUR_REG, dtob(hour));
-    DSset(MIN_REG, dtob(minute));
-    DSset(WDAY_REG, dtob(wday));
-    DSset(MDAY_REG, dtob(day));
-    DSset(MONTH_REG, dtob(month));
-    DSset(YEAR_REG, dtob(year));
+    DSset(HOUR_REG, hour);
+    DSset(MIN_REG, minute);
+    DSset(WDAY_REG, wday);
+    DSset(MDAY_REG, day);
+    DSset(MONTH_REG, month);
+    DSset(YEAR_REG, year);
 }
 
 void writeNumber(byte pos, byte number) {
@@ -177,21 +179,18 @@ void displayDate(void) {
 }
 
 void displayTemp(void) {
-    byte temp;
-    byte tbyte = DSread(TMP_UP_REG);
+    byte temp = DSread(TMP_UP_REG);
 
-    if(tbyte & B10000000) {             // check if -ve number
-       tbyte ^= B11111111;
-       tbyte += 0x1;
-       temp = (tbyte *- 1);
+    if(temp & B10000000) {              // Check if -ve
+        writeNumber(3, 11);             // Write (-) on display and
+        temp ^= B10000000;              // remove sign.
     } else {
-        temp = tbyte;
+        writeNumber(3, 10);
     }
 
     writeNumber(1, (temp / 10 % 10));
     writeNumber(2, (temp % 10));
-    writeNumber(3, 10);
-    writeNumber(4, 11);
+    writeNumber(4, 12);
 }
 
 void setup() {
@@ -200,7 +199,7 @@ void setup() {
     mxConfig();
 
     // Uncomment bellow lines to set your clock
-    //DSsetDate(20, 10, 7, 27, 8, 16);
+    //DSsetDate(16, 31, 1, 29, 8, 16);
     // Syntax: DSsetDate(hour, minute, weekDay, day, month, year);
 }
 
@@ -209,11 +208,11 @@ void loop() {
 
     if(delay_ <= 12) {
         displayHour();
-        byte working = random(0x00, 0xff);
+        byte working = random(0x0, 0xff);
         mx.setColumn(0,0, working);
-        mx.setColumn(0,1, ~working);
+        mx.setColumn(0,1, working);
         mx.setColumn(1,0, ~working);
-        mx.setColumn(1,1, working);
+        mx.setColumn(1,1, ~working);
     }
     else if((delay_ > 12) && (delay_ <= 20)) {
         displayDate();
@@ -235,5 +234,5 @@ void loop() {
     }
     else delay_ = 0;                    // Reset counter
 
-    delay(1000);
+    delay(500);
 }
