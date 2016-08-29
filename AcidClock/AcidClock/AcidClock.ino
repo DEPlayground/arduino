@@ -49,7 +49,7 @@
 #define TMP_UP_REG      0x11 // SIGN DATA  DATA DATA DATA    DATA  DATA DATA (temperature integer)
 #define TMP_LOW_REG     0x12 // DATA DATA  0    0    0       0     0    0    (temperature float)
 
-#define MX_CLOCK        12   // 
+#define MX_CLOCK        12   //
 #define MX_CS           11   // MAX7219 pinout
 #define MX_DIN          10   //
 
@@ -87,16 +87,6 @@ byte algarism[12][3] = {B00001110, B00010001, B00001110,  // 0
                         B00001110, B00010001, B00010001}; // C
 
 LedControl mx=LedControl(MX_DIN, MX_CLOCK, MX_CS, 2);
-
-void setup() {
-    Wire.begin();
-    Serial.begin(9600);
-    mxConfig();
-
-    // Uncomment bellow lines to set your clock
-    //DSsetDate(20, 10, 7, 27, 8, 16);
-    // Syntax: DSsetDate(hour, minute, weekDay, day, month, year);
-}
 
 void mxConfig(void) {
   int devices=mx.getDeviceCount();
@@ -163,11 +153,11 @@ void writeNumber(byte pos, byte number) {
 }
 
 void displayHour(void) {
-    byte hour, minute, second;
+    byte hour, minute;
 
     hour = DSread(HOUR_REG);
     minute = DSread(MIN_REG);
-    
+
     writeNumber(1, btod((hour >> 4) & ((1 << 4) - 1)));   // Get first digit
     writeNumber(2, btod((hour & 0x0f)));                  // Get second digit
     writeNumber(3, btod((minute >> 4) & ((1 << 4) - 1)));
@@ -189,9 +179,9 @@ void displayDate(void) {
 void displayTemp(void) {
     byte temp;
     byte tbyte = DSread(TMP_UP_REG);
-  
+
     if(tbyte & B10000000) {             // check if -ve number
-       tbyte ^= B11111111;  
+       tbyte ^= B11111111;
        tbyte += 0x1;
        temp = (tbyte *- 1);
     } else {
@@ -202,6 +192,16 @@ void displayTemp(void) {
     writeNumber(2, (temp % 10));
     writeNumber(3, 10);
     writeNumber(4, 11);
+}
+
+void setup() {
+    Wire.begin();
+    Serial.begin(9600);
+    mxConfig();
+
+    // Uncomment bellow lines to set your clock
+    //DSsetDate(20, 10, 7, 27, 8, 16);
+    // Syntax: DSsetDate(hour, minute, weekDay, day, month, year);
 }
 
 void loop() {
