@@ -53,40 +53,40 @@
 #define MX_CS           11   // MAX7219 pinout
 #define MX_DIN          10   //
 
-uint32_t delay_;             // Parallel delay storage
+uint8_t delay_;             // Parallel delay storage
 byte lowerd = 128;
 byte lowert = 1;
 
 // 3x5 fonts
 // Old "square" font (best in square matriz)
-//byte algarism[13][3] = {B00011111, B00010001, B00011111,  // 0
-//                        B00000000, B00011111, B00000000,  // 1
-//                        B00011101, B00010101, B00010111,  // 2
-//                        B00010001, B00010101, B00011111,  // 3
-//                        B00000111, B00000100, B00011111,  // 4
-//                        B00010111, B00010101, B00011101,  // 5
-//                        B00011111, B00010101, B00011101,  // 6
-//                        B00000001, B00000001, B00011111,  // 7
-//                        B00011111, B00010101, B00011111,  // 8
-//                        B00010111, B00010101, B00011111,  // 9
-//                        B00000111, B00000101, B00000111,  // °
-//                        B00010111, B00010101, B00010111,  // ° (w/ -ve)
-//                        B00011111, B00010001, B00010001}; // C
+//byte algarism[13][3] = {B11111, B10001, B11111,  // 0
+//                        B00000, B11111, B00000,  // 1
+//                        B11101, B10101, B10111,  // 2
+//                        B10001, B10101, B11111,  // 3
+//                        B00111, B00100, B11111,  // 4
+//                        B10111, B10101, B11101,  // 5
+//                        B11111, B10101, B11101,  // 6
+//                        B00001, B00001, B11111,  // 7
+//                        B11111, B10101, B11111,  // 8
+//                        B10111, B10101, B11111,  // 9
+//                        B00111, B00101, B00111,  // °
+//                        B10111, B10101, B10111,  // ° (w/ -ve)
+//                        B11111, B10001, B10001}; // C
 
 // New "curve" font (best in dot matrix)
-byte algarism[13][3] = {B00001110, B00010001, B00001110,  // 0
-                        B00000000, B00011111, B00000000,  // 1
-                        B00011001, B00010101, B00010010,  // 2
-                        B00010001, B00010101, B00001010,  // 3
-                        B00000011, B00000100, B00011111,  // 4
-                        B00010111, B00010101, B00001001,  // 5
-                        B00001110, B00010101, B00011001,  // 6
-                        B00000001, B00000001, B00011110,  // 7
-                        B00011011, B00010101, B00011011,  // 8
-                        B00000011, B00000101, B00011110,  // 9
-                        B00000010, B00000101, B00000010,  // °
-                        B00010010, B00010101, B00010010,  // ° (w/ -ve)
-                        B00001110, B00010001, B00010001}; // C
+byte algarism[13][3] = {B01110, B10001, B01110,  // 0
+                        B00000, B11111, B00000,  // 1
+                        B11001, B10101, B10010,  // 2
+                        B10001, B10101, B01010,  // 3
+                        B00011, B00100, B11111,  // 4
+                        B10111, B10101, B01001,  // 5
+                        B01110, B10101, B11001,  // 6
+                        B00001, B00001, B11110,  // 7
+                        B11011, B10101, B11011,  // 8
+                        B00011, B00101, B11110,  // 9
+                        B00010, B00101, B00010,  // °
+                        B10010, B10101, B10010,  // ° (w/ -ve)
+                        B01110, B10001, B10001}; // C
 
 LedControl mx=LedControl(MX_DIN, MX_CLOCK, MX_CS, 2);
 
@@ -198,7 +198,7 @@ void setup() {
     Serial.begin(9600);
     mxConfig();
 
-    // Uncomment bellow lines to set your clock
+    // Uncomment bellow line to set your clock
     //DSsetDate(16, 31, 1, 29, 8, 16);
     // Syntax: DSsetDate(hour, minute, weekDay, day, month, year);
 }
@@ -208,31 +208,31 @@ void loop() {
 
     if(delay_ <= 12) {
         displayHour();
+
         byte working = random(0x0, 0xff);
         mx.setColumn(0,0, working);
         mx.setColumn(0,1, working);
         mx.setColumn(1,0, ~working);
         mx.setColumn(1,1, ~working);
-    }
-    else if((delay_ > 12) && (delay_ <= 20)) {
+    } else if((delay_ > 12) && (delay_ <= 20)) {
         displayDate();
-        mx.setColumn(0,0, lowerd);
+
+        mx.setColumn(0,0, ~lowerd);
         mx.setColumn(0,1, lowerd);
-        mx.setColumn(1,0, ~lowerd);
+        mx.setColumn(1,0, lowerd);
         mx.setColumn(1,1, ~lowerd);
         lowerd = ((lowerd >> 1) + 0x80);
         lowert = 1;
-    }
-    else if((delay_ > 20) && (delay_ <= 28)) {
+    } else if((delay_ > 20) && (delay_ <= 28)) {
         displayTemp();
-        mx.setColumn(0,0, ~lowert);
+
+        mx.setColumn(0,0, lowert);
         mx.setColumn(0,1, ~lowert);
-        mx.setColumn(1,0, lowert);
+        mx.setColumn(1,0, ~lowert);
         mx.setColumn(1,1, lowert);
         lowert = ((lowert << 1) + 1);
         lowerd = 0x80;
-    }
-    else delay_ = 0;                    // Reset counter
+    } else delay_ = 0;                    // Reset counter
 
-    delay(500);
+    delay(1000);
 }
