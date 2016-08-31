@@ -8,7 +8,8 @@
 #define BUTTON1 7       // LEGEN...DARY button.
 #define BUZZER 4        // Noisy thing
 
-int x;
+int number;
+int basef = 1;
 
 LedControl mx=LedControl(MX_DIN, MX_CLOCK, MX_CS, 1);
 
@@ -35,7 +36,7 @@ void mxConfig(void) {
   int devices=mx.getDeviceCount();
   for(int matrix=0;matrix<devices;matrix++) {
     mx.shutdown(matrix,false);          // Wake up
-    mx.setIntensity(matrix,2);          // set luminosity and
+    mx.setIntensity(matrix,5);          // set luminosity and
     mx.clearDisplay(matrix);            // clear.
   }
 }
@@ -61,12 +62,35 @@ void beep(void) {
     digitalWrite(BUZZER, LOW);
 }
 
+void base(void) {
+    basef++;
+    switch(basef) {
+        case 1:
+            mx.setColumn(0, 0, 0x30);
+            mx.setColumn(0, 1, 0x00);
+            break;
+        case 2:
+            mx.setColumn(0, 0, 0x0c);
+            mx.setColumn(0, 1, 0x00);
+            break;
+        case 3:
+            mx.setColumn(0, 0, 0x00);
+            mx.setColumn(0, 1, 0x0c);
+            break;
+        case 4:
+            mx.setColumn(0, 0, 0x00);
+            mx.setColumn(0, 1, 0x30);
+            basef = 0;
+            break;
+    }
+}
+
 void rollTheBones(void) {
     uint8_t rolls = random(18, 36);
 
     for(int i = 0;i <= rolls;i++) {
-        x++;
-        switch(x) {
+        number++;
+        switch(number) {
             case 1:
                 writeNumber(1, 10);
                 writeNumber(2, 1);
@@ -98,10 +122,11 @@ void rollTheBones(void) {
             case 10:
                 writeNumber(1, 1);
                 writeNumber(2, 0);
-                x = 0;
+                number = 0;
                 break;
         }
         beep();
+        base();
         delay(i*10);
     }
 }
